@@ -1,0 +1,13 @@
+dist/
+/dist/
+.venv/
+/.venv/
+.pytest_cache/
+.pytest_cache
+.vscode/
+__pycache__
+tests/__pycache__
+.coverage
+coverage.xml
+.idea
+.env
