@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, render_template, request, flash, redirect, url_for
 from dotenv import load_dotenv
 
 
@@ -7,3 +7,9 @@ load_dotenv()  # take environment variables from .env.
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+
+
+@app.route("/")
+def index():
+    return render_template('index.html')
+
