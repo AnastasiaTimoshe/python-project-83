@@ -1,3 +1,4 @@
-#!/usr/bin/env bash
+bash
+# !/usr/bin/env bash
 
-make install && psql -U admin -a --dbname=$DATABASE_URL --file=database.sql
+make install && psql -a -d $DATABASE_URL -f database.sql
