@@ -1,17 +1,14 @@
+import validators
 from urllib.parse import urlparse
-from validators.url import url as check_url
 
 
 def validate_url(url):
-    errors = []
-
-    if not check_url(url):
-        errors.append(('Некорректный URL', 'danger'))
-
+    if not url:
+        return "URL обязателен"
     if len(url) > 255:
-        errors.append(('Error! Url length > 255', 'danger'))
-
-    return errors
+        return 'URL не может превышать 255 символов'
+    if not validators.url(url):
+        return 'Некорректный URL'
 
 
 def normalize_url(url):
