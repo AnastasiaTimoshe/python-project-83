@@ -7,9 +7,6 @@ lint:
 build:
 	./build.sh
 
-publish:
-	poetry publish --dry-run
-
 dev:
 	poetry run flask --app page_analyzer:app run
 
