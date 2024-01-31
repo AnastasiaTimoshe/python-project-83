@@ -1,5 +1,4 @@
 import os
-
 import requests
 from dotenv import load_dotenv
 from flask import (
@@ -10,7 +9,6 @@ from flask import (
     flash,
     url_for
 )
-
 from page_analyzer.db import (
     get_url,
     get_all_urls,
@@ -20,6 +18,7 @@ from page_analyzer.db import (
     insert_check
 )
 
+from page_analyzer.urls import validate_url, normalize_url
 
 load_dotenv()
 app = Flask(__name__)
