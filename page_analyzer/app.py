@@ -1,22 +1,8 @@
 import os
 import requests
 from dotenv import load_dotenv
-from flask import (
-    Flask,
-    render_template,
-    redirect,
-    request,
-    flash,
-    url_for
-)
-from page_analyzer.db import (
-    get_url,
-    get_all_urls,
-    get_url_info,
-    get_checks,
-    insert_url,
-    insert_check
-)
+from flask import (Flask, render_template, redirect, request, flash, url_for)
+from page_analyzer.db import (get_url, get_all_urls, get_url_info, get_checks, insert_url, insert_check)
 from page_analyzer.parser import parse_ceo_tags
 from page_analyzer.urls import validate_url, normalize_url
 

@@ -1,11 +1,9 @@
 install:
 	poetry install
 
-lint:
-	poetry run flake8
-
-build:
-	./build.sh
+setup:
+	make install
+	sh ./build.sh
 
 dev:
 	poetry run flask --app page_analyzer:app run
@@ -16,3 +14,6 @@ start:
 
 start-debug:
 	poetry run flask --app page_analyzer.app:app --debug run --port 8000
+
+lint:
+	poetry run flake8
