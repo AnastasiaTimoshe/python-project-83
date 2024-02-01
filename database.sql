@@ -1,18 +1,22 @@
-CREATE TABLE urls(
-    id  bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    name  varchar(255) UNIQUE,
-    created_at DATE DEFAULT CURRENT_DATE
+Drop table if exists url_checks;
+
+drop table if exists urls;
+
+create table urls(
+    id bigint primary key generated always as identity,
+    name VARCHAR(255) unique,
+    created_at timestamp default now()
 );
 
-CREATE TABLE url_checks(
-    id  bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    url_id  bigint,
-    status_code  integer,
-    h1  varchar(255),
-    title  varchar(255),
-    description  varchar(255),
-    created_at DATE DEFAULT CURRENT_DATE,
-    CONSTRAINT fk_url
-      FOREIGN KEY(url_id)
-	  REFERENCES urls(id)
+create table "urls_checks"(
+    id bigint primary key generated always as identity,
+    "url_id" int8,
+    "status_code" int4,
+    "h1" varchar(512),
+    "title" varchar(512),
+    "description" varchar(512),
+    "created_at" timestamp DEFAULT now()
+    CONSTRAINT "urls_checks_url_id_key"
+        FOREIGN KEY ("url_id")
+            REFERENCES "urls"("id")
 );
