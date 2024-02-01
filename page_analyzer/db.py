@@ -12,7 +12,7 @@ connection_path = os.getenv(
 
 class DatabaseConnection:
     def __enter__(self):
-        self.db = psycopg2.connect(DATABASE_URL)
+        self.db = psycopg2.connect(connection_path)
         self.cursor = self.db.cursor(cursor_factory=DictCursor)
         return self.cursor
 
