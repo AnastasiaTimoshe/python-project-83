@@ -4,7 +4,10 @@ from dotenv import load_dotenv
 from psycopg2.extras import DictCursor
 
 load_dotenv()
-DATABASE_URL = os.getenv('DATABASE_URL')
+
+connection_path = os.getenv(
+    "DATABASE_URL", "postgresql://postgres:random@localhost:5432/page_analyzer"
+)
 
 
 class DatabaseConnection:
