@@ -1,49 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-{% include 'head.html' %}
-<body class="min-vh-100 d-flex flex-column">
-{% include 'header.html' %}
-<main class="flex-grow-1">
+{% extends "index.html" %}
+
+{% block main %}
     <div class="container-lg mt-3">
-        <h1>Сайты</h1>
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover text-nowrap" data-test="urls">
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Имя</th>
-                    <th>Последняя проверка</th>
-                    <th>Код ответа</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for site in sites %}
-                    {% set id, url, last_check, status  = site %}
-                    <tr>
-                        <td>
-                            {{ id }}
-                        </td>
-                        <td>
-                            <a href="/urls/{{ id }}">
-                                {{ url }}
-                            </a>
-                        </td>
+      <h1>Сайты</h1>
 
-                        <td>
-                            {{ last_check }}
-                        </td>
+    
+<div class="table-responsive">
+  <table class="table table-bordered table-hover text-nowrap" data-test="urls">
+    <thead>
+    <tr>
+      <th>ID</th>
+      <th>Имя</th>
+      <th>Последняя проверка</th>
+      <th>Код ответа</th>
+    </tr>
+    </thead>
+    <tbody>
+      {% for url in urls %}
+        <tr>
+          <td>{{ url['id'] }}</td>
+          <td>
+            <a href="/urls/{{ url['id'] }}">
+              {{ url['name'] }}
+            </a>
+          </td>          
+          <td>{{ url['created_at'] }}</td>
+          
+          
+          <td>{{ url['status_code'] }}</td>
+        
+        </tr>
+      {% endfor %}  
+    </tbody>
+  </table>
+</div>
 
-                        <td>
-                            {{ status }}
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
     </div>
-</main>
-{% include 'footer.html' %}
-{% include 'bootstrap_script.html' %}
-</body>
-</html>
+{% endblock %}
