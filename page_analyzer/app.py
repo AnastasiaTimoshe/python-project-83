@@ -1,95 +1,90 @@
 import os
-import requests
-from dotenv import load_dotenv
-from flask import (Flask, render_template, redirect,
-                   request, flash, url_for)
-from page_analyzer.db import (get_url, get_all_urls,
-                              get_url_info, get_checks,
-                              insert_url, insert_check)
-from page_analyzer.parser import parse_ceo_tags
-from page_analyzer.urls import validate_url, normalize_url
+from flask import (
+    Flask,
+    abort,
+    render_template,
+    request,
+    url_for,
+    redirect,
+    flash,
+    get_flashed_messages
+)
+from page_analyzer.validate import validate_url, normalize_url
+from page_analyzer.html import make_check
+from page_analyzer.database import (
+    get_url_by_id,
+    get_url_by_name,
+    show_url,
+    show_urls_check,
+    add_url,
+    add_check
+)
 
-load_dotenv()
+
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 
 @app.route('/')
-def index():
-    return render_template('index.html')
-
-
-@app.post('/urls')
-def add_url():
-    url = request.form.get("url")
-    errors = validate_url(url)
-    if errors:
-        for error in errors:
-            text, category = error
-            flash(text, category)
-        return render_template('index.html'), 422
-
-    norm_url = normalize_url(url)
-    url_in_bd = get_url(norm_url)
-
-    if url_in_bd is not None:
-        flash('Страница уже существует', 'info')
-        url_id = url_in_bd['id']
-        return redirect(
-            url_for('show_url', id=url_id),
-            code=302
-        )
-
-    url_id = insert_url(norm_url)
-
-    flash('Страница успешно добавлена', 'success')
-    return redirect(
-        url_for('show_url', id=url_id),
-        code=302
-    )
+def first_page():
+    messages = get_flashed_messages()
+    return render_template('index.html', messages=messages)
 
 
 @app.get('/urls')
-def show_urls():
-    sites = get_all_urls()
+def get_urls():
+    messages = get_flashed_messages()
+    urls = show_urls_check()
     return render_template(
-        'urls.html',
-        sites=sites
+        'show_urls.html',
+        messages=messages,
+        urls=urls,
     )
+
+
+@app.post('/urls')
+def post_url():
+    url_new = request.form.get('url')
+    error_message = validate_url(url_new)
+    if error_message:
+        flash(error_message)
+        return render_template('index.html'), 422
+    url_norm = normalize_url(url_new)
+    url = get_url_by_name(url_norm)
+    if url:
+        flash('Страница уже существует')
+        id = url.id
+    else:
+        flash('Страница успешно добавлена')
+        id = add_url(url_norm)
+    return redirect(url_for('get_url', id=id))
 
 
 @app.get('/urls/<int:id>')
-def show_url(id):
-    url_info = get_url_info(id)
-    url_checks = get_checks(id)
+def get_url(id):
+    url = get_url_by_id(id)
+    if not url:
+        return abort(404)
+    messages = get_flashed_messages(with_categories=True)
+    checks = show_url(id)
     return render_template(
-        'url.html',
-        site_id=id,
-        site_url=url_info['url'],
-        site_date=url_info['date'],
-        url_checks=url_checks
+        'show_url.html',
+        url=url,
+        messages=messages,
+        checks=checks
     )
 
 
-@app.post('/urls/<int:id>/checks')
-def check_url(id):
-    url = get_url_info(id)['url']
-    request = requests.get(url)
-    status_code = request.status_code
-
-    if status_code == 200:
-        tags = parse_ceo_tags(request.text)
-        insert_check(id, status_code, *tags)
-        flash('Страница успешно проверена', 'success')
+@app.post('/urls/<int:url_id>/checks')
+def get_check(url_id):
+    url = get_url_by_id(url_id)
+    check_dict = make_check(url.name, url.id)
+    if check_dict['status_code'][0] != 200:
+        flash('Произошла ошибка при проверке')
     else:
-        flash('Произошла ошибка при проверке', 'danger')
-
-    return redirect(url_for('show_url', id=id))
-
-
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('404.html'), 404
+        flash('Страница успешно проверена')
+    add_check(check_dict)
+    return redirect(url_for('get_url', id=url.id))
 
 
 if __name__ == '__main__':

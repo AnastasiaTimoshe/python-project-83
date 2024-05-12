@@ -1,5 +1,4 @@
 Drop table if exists url_checks;
-
 drop table if exists urls;
 
 CREATE TABLE urls(
