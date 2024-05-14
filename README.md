@@ -5,7 +5,7 @@
 
 [You can see the result "Page Analyzer"](https://page-analyzer-app-6hjz.onrender.com)
 
-**Page Analyzer** 
+# Page Analyzer
 
 Page Analyzer is a site that analyzes specified pages for SEO suitability.
 
