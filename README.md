@@ -14,25 +14,13 @@ ____
 
 This project was built using these tools:
 
-    1. python 3.11
-    2. poetry 1.7.1
-    3. flake8 7.0.0
+
 
 ____
 
 It will be comfortable to use this application with these commands:
 
-    - to install : `pip install --user git@github.com:AnastasiaTimoshe/python-project-83.git`
 
-    - to assemble package : `make build`
-
-    - to publish : `make publish`
-
-    - to run pytest : `make test`
-
-    - to run linter : `make lint`
-
-    - to run app : `make dev`
 
 ____
 
