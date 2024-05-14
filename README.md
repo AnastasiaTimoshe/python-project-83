@@ -7,21 +7,16 @@
 
 **Page Analyzer** 
 
-
 Page Analyzer is a site that analyzes specified pages for SEO suitability.
 
-____
+## Install
 
-This project was built using these tools:
+Prepare the database.
 
+Before installing the application, prepare your environment variables:
++ **DATABASE_URL** - variable for connecting to the database.
++ **SECRET_KEY**
 
-
-____
-
-It will be comfortable to use this application with these commands:
-
-
-
-____
-
-To use the app properly you'll need to provide it with $DATABASE_URL and $SECRET_KEY vars.
+After cloning from GitHub, run the commands:
++ *make build*
++ *make start*
