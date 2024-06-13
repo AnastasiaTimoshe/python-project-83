@@ -14,7 +14,6 @@ from page_analyzer.database import (
     create_connection,
     get_url_by_id,
     get_url_by_name,
-    show_url,
     show_urls,
     show_url_checks,
     add_url,
@@ -75,7 +74,7 @@ def post_url():
         url = get_url_by_name(conn, url_norm)
         if url:
             flash('Страница уже существует')
-            id = url.id
+            id = url['id']
         else:
             flash('Страница успешно добавлена')
             id = add_url(conn, url_norm)
@@ -90,9 +89,9 @@ def get_url(id):
     try:
         url = get_url_by_id(conn, id)
         if not url:
-            return render_template('404.html'), 404
+            return render_template('error/404.html'), 404
         messages = get_flashed_messages(with_categories=True)
-        checks = show_url(conn, id)
+        checks = show_url_checks(conn, id)
         return render_template('show_url.html',
                                url=url, messages=messages, checks=checks)
     finally:
@@ -104,13 +103,13 @@ def get_check(url_id):
     conn = create_connection(DATABASE_URL)
     try:
         url = get_url_by_id(conn, url_id)
-        check_dict = make_check(url.name, url.id)
-        if check_dict['status_code'][0] != 200:
+        check_dict = make_check(url['name'], url_id)
+        if check_dict['status_code'] != 200:
             flash('Произошла ошибка при проверке')
         else:
             flash('Страница успешно проверена')
         add_url_check(conn, check_dict)
-        return redirect(url_for('get_url', id=url.id))
+        return redirect(url_for('get_url', id=url_id))
     finally:
         conn.close()
 
