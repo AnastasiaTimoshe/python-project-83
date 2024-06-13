@@ -103,6 +103,8 @@ def get_check(url_id):
     conn = create_connection(DATABASE_URL)
     try:
         url = get_url_by_id(conn, url_id)
+        if not url:  # Проверка, существует ли URL
+            return render_template('error/404.html'), 404
         check_dict = make_check(url['name'], url_id)
         if check_dict['status_code'] != 200:
             flash('Произошла ошибка при проверке')
