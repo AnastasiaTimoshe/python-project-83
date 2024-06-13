@@ -1,7 +1,6 @@
 import os
 from flask import (
     Flask,
-    abort,
     render_template,
     request,
     url_for,
@@ -48,7 +47,8 @@ def get_urls():
         url_data = []
         for url in urls:
             url_id = url['id']
-            check = next((check for check in url_checks if check['url_id'] == url_id), {})
+            check = next((check for check in url_checks
+                          if check['url_id'] == url_id), {})
             url_data.append({
                 'id': url_id,
                 'name': url['name'],
@@ -56,7 +56,8 @@ def get_urls():
                 'status_code': check.get('status_code')
             })
 
-        return render_template('show_urls.html', messages=messages, urls=url_data)
+        return render_template('show_urls.html',
+                               messages=messages, urls=url_data)
     finally:
         conn.close()
 
@@ -92,7 +93,8 @@ def get_url(id):
             return render_template('404.html'), 404
         messages = get_flashed_messages(with_categories=True)
         checks = show_url(conn, id)
-        return render_template('show_url.html', url=url, messages=messages, checks=checks)
+        return render_template('show_url.html',
+                               url=url, messages=messages, checks=checks)
     finally:
         conn.close()
 
@@ -115,12 +117,12 @@ def get_check(url_id):
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html'), 404
+    return render_template('error/404.html'), 404
 
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template('500.html'), 500
+    return render_template('error/500.html'), 500
 
 
 if __name__ == '__main__':
