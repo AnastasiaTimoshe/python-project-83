@@ -111,7 +111,7 @@ def post_url_check(id: int):
         page_data = make_check(url.name, id)
         status_code = page_data.get('status_code')
 
-        if status_code and status_code < 400:
+        if status_code and status_code < 404:
             page_data['url_id'] = id
             add_url_check(conn, page_data)
             conn.commit()
