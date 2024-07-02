@@ -126,7 +126,6 @@ def post_url_check(id: int):
         conn.close()
 
 
-
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('error/404.html'), 404
