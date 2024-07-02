@@ -1,33 +1,16 @@
-import requests
 from bs4 import BeautifulSoup
-from datetime import date
 
 
-def html_parser(src):
-    soup = BeautifulSoup(src, 'html.parser')
-    s_h1 = soup.h1.string if soup.h1 else ''
-    s_title = soup.title.string if soup.title else ''
-    description = soup.find("meta", attrs={"name": "description"})
-    if description:
-        description = description['content']
-    else:
-        description = ''
+def extract_page_data(text):
+    data = BeautifulSoup(text, "html.parser")
+    h1_tag = data.find('h1')
+    title_tag = data.find('title')
+    meta_description_tag = data.find(
+        'meta', attrs={'name': 'description'})
     return {
-        "h1": s_h1,
-        "title": s_title,
-        "description": description,
+        'h1': h1_tag.text[:255] if h1_tag else '',
+        'title': title_tag.text[:255] if title_tag else '',
+        'description': (
+            meta_description_tag.get('content', '')[:255]
+            if meta_description_tag else '')
     }
-
-
-def make_check(url, url_id):
-    headers = {'user-agent': 'my-app/0.0.1'}
-    try:
-        response = requests.get(url, headers=headers)
-    except requests.exceptions.RequestException:
-        return
-    src = response.text
-    parsing_results = html_parser(src)
-    parsing_results["url_id"] = url_id
-    parsing_results["status_code"] = response.status_code,
-    parsing_results["created_at"] = date.today()
-    return parsing_results
