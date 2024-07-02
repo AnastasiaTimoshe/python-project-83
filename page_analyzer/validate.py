@@ -2,15 +2,18 @@ import validators
 from urllib.parse import urlparse
 
 
-def validate_url(url):
-    """Validate url by rules"""
+def validate(url):
+    url_validator = validators.url(url)
     if not url:
-        return 'URL обязателен'
-    elif not validators.url(url):
+        return 'URL обязателен для заполнения'
+    if not url_validator:
         return 'Некорректный URL'
+    if len(url) > 255:
+        return 'URL слишком длинный'
 
 
 def normalize_url(url):
-    """Truncates the URL to the <protocol>://<domain name> structure"""
-    url_norm = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
-    return url_norm
+    parsed_url = urlparse(url)
+    normalized_scheme = parsed_url.scheme.lower()
+    normalized_host = parsed_url.hostname.lower()
+    return f'{normalized_scheme}://{normalized_host}'

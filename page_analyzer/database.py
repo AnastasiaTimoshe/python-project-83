@@ -1,68 +1,85 @@
 import psycopg2
-from psycopg2.extras import NamedTupleCursor, RealDictCursor
-from datetime import date
+from psycopg2.extras import NamedTupleCursor
 
 
-def create_connection(database_url):
-    return psycopg2.connect(database_url)
+class DatabaseManager:
+    def __init__(self, app):
+        self.app = app
 
+    @staticmethod
+    def execute_in_db(func):
+        """Декоратор для выполнения функций соединения с базой данных."""
+        def inner(self, *args, **kwargs):
+            with psycopg2.connect(self.app.config['DATABASE_URL']) as conn:
+                with conn.cursor(cursor_factory=NamedTupleCursor) as cursor:
+                    result = func(self, cursor=cursor, *args, **kwargs)
+                    conn.commit()
+                    return result
+        return inner
 
-def get_url_by_id(conn, id):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
-        cur.execute('SELECT * FROM urls WHERE id = %s;', (id,))
-        url = cur.fetchone()
-    return url
+    @staticmethod
+    def with_commit(func):
+        def inner(self, *args, **kwargs):
+            try:
+                with psycopg2.connect(self.app.config['DATABASE_URL']) as conn:
+                    cursor = conn.cursor(cursor_factory=NamedTupleCursor)
+                    result = func(self, cursor, *args, **kwargs)
+                    conn.commit()
+                    return result
+            except psycopg2.Error as e:
+                print(f'Ошибка при выполнении транзакции: {e}')
+                raise e
+        return inner
 
+    @with_commit
+    def insert_url(self, cursor, url):
+        cursor.execute("""INSERT INTO urls (name) VALUES (%s)
+                       RETURNING *""", (url,))
+        url_data = cursor.fetchone()
+        return url_data
 
-def get_url_by_name(conn, url):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
-        cur.execute('SELECT * FROM urls WHERE name = %s;', (url,))
-        url_new = cur.fetchone()
-    return url_new
+    @execute_in_db
+    def find_url_by_id(self, id, cursor):
+        cursor.execute("SELECT * from urls WHERE id=%s", (id,))
+        url_id = cursor.fetchone()
+        return url_id
 
+    @execute_in_db
+    def find_url_by_name(self, name, cursor):
+        value = str(name)
+        cursor.execute("SELECT * from urls WHERE name=%s", (value,))
+        url_id = cursor.fetchone()
+        return url_id.id if url_id else None
 
-def show_url(conn, id):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
-        cur.execute(
-            'SELECT * FROM url_checks WHERE url_id = %s '
-            'ORDER BY id DESC;', (id,)
+    @execute_in_db
+    def get_all_urls(self, cursor):
+        query = '''
+            SELECT u.id, u.name, MAX(c.created_at) AS last_checked,
+            MAX(c.status_code) AS status_code
+            FROM urls u
+            LEFT JOIN url_checks c ON u.id = c.url_id
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
+        '''
+        cursor.execute(query)
+        urls_data = cursor.fetchall()
+        return urls_data
+
+    @with_commit
+    def add_check(self, cursor, id, result_check):
+        cursor.execute(
+            '''INSERT INTO url_checks (url_id, status_code, h1, title,
+            description)
+            VALUES (%s, %s, %s, %s, %s) RETURNING *''',
+            (id, result_check['status_code'], result_check['h1'],
+             result_check['title'], result_check['description'],)
         )
-        checks = cur.fetchall()
-    return checks
+        checks = cursor.fetchall()
+        return checks
 
-
-def add_url(conn, url_name):
-    post_date = date.today()
-    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
-        cur.execute(
-            'INSERT INTO urls(name, created_at) VALUES(%s, %s) RETURNING id;',
-            (url_name, post_date)
-        )
-        url_id = cur.fetchone().id
-    return url_id
-
-
-def show_urls(conn):
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT id, name FROM urls ORDER BY id DESC;")
-        urls = cur.fetchall()
-    return urls
-
-
-def show_url_checks(conn):
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT url_id, created_at, status_code "
-                    "FROM url_checks ORDER BY created_at DESC;")
-        url_checks = cur.fetchall()
-    return url_checks
-
-
-def add_url_check(conn, check_dict):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
-        cur.execute("""
-            INSERT INTO url_checks (url_id, status_code,
-            h1, title, description, created_at)
-            VALUES (%(url_id)s, %(status_code)s, %(h1)s,
-            %(title)s, %(description)s, %(created_at)s);
-        """, check_dict)
-    conn.commit()
+    @execute_in_db
+    def find_checks_by_id(self, id, cursor):
+        value = str(id)
+        cursor.execute("SELECT * from url_checks WHERE url_id=%s", (value,))
+        checks = cursor.fetchall()
+        return checks
