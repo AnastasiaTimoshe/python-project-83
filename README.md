@@ -14,7 +14,7 @@ The application saves all of it on a remote postgres database.
 
 ### Demonstration
 
-The production version of the app is (hopefully) available at the following URL:
+The production version of the app is available at the following URL:
 [Page analyzer](https://page-analyzer-app-6hjz.onrender.com)
 
 ## Install

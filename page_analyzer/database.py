@@ -1,85 +1,69 @@
-import psycopg2
+from datetime import date
 from psycopg2.extras import NamedTupleCursor
 
 
-class DatabaseManager:
-    def __init__(self, app):
-        self.app = app
+def get_urls(conn):
+    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
+        curs.execute("""WITH RankedUrlChecks AS
+        (SELECT uc.url_id, uc.status_code, uc.created_at,
+        ROW_NUMBER() OVER(PARTITION BY uc.url_id
+        ORDER BY uc.created_at DESC) AS rn
+        FROM url_checks uc)
+        SELECT urls.url_id, urls.name,
+        uc.status_code, uc.created_at
+        FROM urls
+        LEFT JOIN RankedUrlChecks uc
+        ON urls.url_id = uc.url_id AND uc.rn = 1
+        ORDER BY urls.url_id DESC;""")
+        all_urls = curs.fetchall()
+    conn.close()
+    return all_urls
 
-    @staticmethod
-    def execute_in_db(func):
-        """Декоратор для выполнения функций соединения с базой данных."""
-        def inner(self, *args, **kwargs):
-            with psycopg2.connect(self.app.config['DATABASE_URL']) as conn:
-                with conn.cursor(cursor_factory=NamedTupleCursor) as cursor:
-                    result = func(self, cursor=cursor, *args, **kwargs)
-                    conn.commit()
-                    return result
-        return inner
 
-    @staticmethod
-    def with_commit(func):
-        def inner(self, *args, **kwargs):
-            try:
-                with psycopg2.connect(self.app.config['DATABASE_URL']) as conn:
-                    cursor = conn.cursor(cursor_factory=NamedTupleCursor)
-                    result = func(self, cursor, *args, **kwargs)
-                    conn.commit()
-                    return result
-            except psycopg2.Error as e:
-                print(f'Ошибка при выполнении транзакции: {e}')
-                raise e
-        return inner
+def get_id_by_name(conn, name):
+    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
+        curs.execute(f"SELECT url_id FROM urls WHERE name='{name}'")
+        url_id = curs.fetchone()
+    conn.close()
+    return url_id
 
-    @with_commit
-    def insert_url(self, cursor, url):
-        cursor.execute("""INSERT INTO urls (name) VALUES (%s)
-                       RETURNING *""", (url,))
-        url_data = cursor.fetchone()
-        return url_data
 
-    @execute_in_db
-    def find_url_by_id(self, id, cursor):
-        cursor.execute("SELECT * from urls WHERE id=%s", (id,))
-        url_id = cursor.fetchone()
-        return url_id
+def insert_url_get_id(conn, name):
+    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
+        current_date = date.today().isoformat()
+        curs.execute(f"""
+        INSERT INTO urls (name, created_at)
+        VALUES ('{name}', '{current_date}')
+        RETURNING url_id;
+        """)
+        id = curs.fetchone().url_id
+        conn.commit()
+        conn.close()
+        return id
 
-    @execute_in_db
-    def find_url_by_name(self, name, cursor):
-        value = str(name)
-        cursor.execute("SELECT * from urls WHERE name=%s", (value,))
-        url_id = cursor.fetchone()
-        return url_id.id if url_id else None
 
-    @execute_in_db
-    def get_all_urls(self, cursor):
-        query = '''
-            SELECT u.id, u.name, MAX(c.created_at) AS last_checked,
-            MAX(c.status_code) AS status_code
-            FROM urls u
-            LEFT JOIN url_checks c ON u.id = c.url_id
-            GROUP BY u.id
-            ORDER BY u.created_at DESC
-        '''
-        cursor.execute(query)
-        urls_data = cursor.fetchall()
-        return urls_data
+def get_url_by_id(conn, id):
+    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
+        curs.execute(f'SELECT * FROM urls WHERE url_id={id}')
+        url = curs.fetchone()
+        conn.close()
+    return url
 
-    @with_commit
-    def add_check(self, cursor, id, result_check):
-        cursor.execute(
-            '''INSERT INTO url_checks (url_id, status_code, h1, title,
-            description)
-            VALUES (%s, %s, %s, %s, %s) RETURNING *''',
-            (id, result_check['status_code'], result_check['h1'],
-             result_check['title'], result_check['description'],)
-        )
-        checks = cursor.fetchall()
-        return checks
 
-    @execute_in_db
-    def find_checks_by_id(self, id, cursor):
-        value = str(id)
-        cursor.execute("SELECT * from url_checks WHERE url_id=%s", (value,))
-        checks = cursor.fetchall()
-        return checks
+def get_checks_by_url_id(conn, url_id):
+    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
+        curs.execute(f"""SELECT * FROM url_checks
+        WHERE url_id={url_id} ORDER BY check_id DESC""")
+        url_checks = curs.fetchall()
+        conn.close()
+    return url_checks
+
+
+def insert_check(conn, id, status_code, h1, title, description):
+    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
+        curs.execute(f"""INSERT INTO url_checks (url_id,
+        status_code, h1, title, description, created_at)
+        VALUES ({id}, {status_code}, '{h1}', '{title}',
+        '{description}', '{date.today().isoformat()}');""")
+    conn.commit()
+    conn.close()
