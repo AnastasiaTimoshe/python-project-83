@@ -15,6 +15,7 @@ from page_analyzer.database import (
     get_url_by_id,
     get_url_by_name,
     show_urls,
+    show_url,
     show_url_checks,
     add_url,
     add_url_check
@@ -32,7 +33,7 @@ app.config['SECRET_KEY'] = SECRET_KEY
 @app.route('/')
 def first_page():
     messages = get_flashed_messages()
-    return render_template('index.html', messages=messages)
+    return render_template("index.html", messages=messages)
 
 
 @app.get('/urls')
@@ -74,10 +75,11 @@ def post_url():
         url = get_url_by_name(conn, url_norm)
         if url:
             flash('Страница уже существует')
-            id = url['id']
+            id = url.id
         else:
             flash('Страница успешно добавлена')
             id = add_url(conn, url_norm)
+        conn.commit()
         return redirect(url_for('get_url', id=id))
     finally:
         conn.close()
@@ -91,29 +93,38 @@ def get_url(id):
         if not url:
             return render_template('error/404.html'), 404
         messages = get_flashed_messages(with_categories=True)
-        checks = show_url_checks(conn, id)
+        checks = show_url(conn, id)
         return render_template('show_url.html',
                                url=url, messages=messages, checks=checks)
     finally:
         conn.close()
 
 
-@app.post('/urls/<int:url_id>/checks')
-def get_check(url_id):
+@app.post('/urls/<int:id>/checks')
+def post_url_check(id: int):
     conn = create_connection(DATABASE_URL)
     try:
-        url = get_url_by_id(conn, url_id)
-        if not url:  # Проверка, существует ли URL
+        url = get_url_by_id(conn, id)
+        if not url:
             return render_template('error/404.html'), 404
-        check_dict = make_check(url['name'], url_id)
-        if check_dict['status_code'] != 200:
-            flash('Произошла ошибка при проверке')
+
+        page_data = make_check(url.name, id)
+        status_code = page_data.get('status_code')
+
+        if status_code and status_code < 400:
+            page_data['url_id'] = id
+            add_url_check(conn, page_data)
+            conn.commit()
+            flash('Страница успешно проверена', 'success')
+        elif status_code is None:
+            return render_template('error/500.html'), 500
         else:
-            flash('Страница успешно проверена')
-        add_url_check(conn, check_dict)
-        return redirect(url_for('get_url', id=url_id))
+            flash('Произошла ошибка при проверке', 'danger')
+
+        return redirect(url_for('get_url', id=id))
     finally:
         conn.close()
+
 
 
 @app.errorhandler(404)

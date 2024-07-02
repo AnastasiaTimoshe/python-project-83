@@ -25,7 +25,7 @@ def show_url(conn, id):
     with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
         cur.execute(
             'SELECT * FROM url_checks WHERE url_id = %s '
-            'ORDER by id DESC;', (id,)
+            'ORDER BY id DESC;', (id,)
         )
         checks = cur.fetchall()
     return checks
@@ -64,5 +64,5 @@ def add_url_check(conn, check_dict):
             h1, title, description, created_at)
             VALUES (%(url_id)s, %(status_code)s, %(h1)s,
             %(title)s, %(description)s, %(created_at)s);
-            """,
-                    check_dict)
+        """, check_dict)
+    conn.commit()
