@@ -3,11 +3,19 @@
 [![Page_analizer CI](https://github.com/AnastasiaTimoshe/python-project-83/actions/workflows/page_analyzer.yml/badge.svg)](https://github.com/AnastasiaTimoshe/python-project-83/actions/workflows/page_analyzer.yml)
 [![Maintainability](https://api.codeclimate.com/v1/badges/bbd27598e212c93e0e5a/maintainability)](https://codeclimate.com/github/AnastasiaTimoshe/python-project-83/maintainability)
 
-[You can see the result "Page Analyzer"](https://page-analyzer-app-6hjz.onrender.com)
 
-# Page Analyzer
+### Description
+Page Analyzer is a site that analyzes websites for SEO suitability.  
+The application uses Python library 
+[Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/bs4/doc/) to parse websites.  
+The results of the checks of websites are parsing: 
+h1, title, description and code status.
+The application saves all of it on a remote postgres database.
 
-Page Analyzer is a site that analyzes specified pages for SEO suitability.
+### Demonstration
+
+The production version of the app is (hopefully) available at the following URL:
+[Page analyzer](https://page-analyzer-app-6hjz.onrender.com)
 
 ## Install
 
