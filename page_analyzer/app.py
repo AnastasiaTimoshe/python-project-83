@@ -48,19 +48,16 @@ def get_urls():
                 'id': url['id'],
                 'name': url['name'],
                 'last_check': next(
-                    (check.get('created_at') for check in url_checks
-                     if check['url_id'] == url['id']), None
+                    (check.get('created_at') for check in url_checks if check['url_id'] == url['id']), None
                 ),
                 'status_code': next(
-                    (check.get('status_code') for check in url_checks
-                     if check['url_id'] == url['id']), None
+                    (check.get('status_code') for check in url_checks if check['url_id'] == url['id']), None
                 )
             }
             for url in urls
         ]
 
-        return render_template('show_urls.html',
-                               messages=messages, urls=url_data)
+        return render_template('show_urls.html', messages=messages, urls=url_data)
 
 
 @app.post('/urls')
@@ -93,22 +90,17 @@ def get_url(id):
 
         messages = get_flashed_messages(with_categories=True)
         checks = show_url(conn, id)
-        return render_template('show_url.html',
-                               url=url, messages=messages, checks=checks)
+        return render_template('show_url.html', url=url, messages=messages, checks=checks)
 
 
 @app.post('/urls/<int:id>/checks')
 def post_url_check(id: int):
-    conn = create_connection(DATABASE_URL)
-    try:
+    with create_connection(DATABASE_URL) as conn:
         url = get_url_by_id(conn, id)
         if not url:
             return render_template('error/404.html'), 404
 
         page_data = make_check(url['name'], id)
-        if page_data is None:
-            return render_template('error/500.html'), 500
-
         status_code = page_data.get('status_code')
 
         if status_code is not None and status_code < 400:
@@ -117,11 +109,11 @@ def post_url_check(id: int):
             conn.commit()
             flash('Страница успешно проверена', 'success')
         else:
-            flash('Произошла ошибка при проверке', 'danger')
+            flash('Произошла ошибка при проверке', 'danger' if status_code else 'Произошла внутренняя ошибка сервера')
+            if status_code is None:
+                return render_template('error/500.html'), 500
 
         return redirect(url_for('get_url', id=id))
-    finally:
-        conn.close()
 
 
 @app.errorhandler(404)
