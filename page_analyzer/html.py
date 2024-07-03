@@ -28,6 +28,6 @@ def make_check(url, url_id):
     src = response.text
     parsing_results = html_parser(src)
     parsing_results["url_id"] = url_id
-    parsing_results["status_code"] = response.status_code,
+    parsing_results["status_code"] = response.status_code
     parsing_results["created_at"] = date.today()
     return parsing_results
