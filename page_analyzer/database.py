@@ -1,69 +1,68 @@
+import psycopg2
+from psycopg2.extras import NamedTupleCursor, RealDictCursor
 from datetime import date
-from psycopg2.extras import NamedTupleCursor
 
 
-def get_urls(conn):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
-        curs.execute("""WITH RankedUrlChecks AS
-        (SELECT uc.url_id, uc.status_code, uc.created_at,
-        ROW_NUMBER() OVER(PARTITION BY uc.url_id
-        ORDER BY uc.created_at DESC) AS rn
-        FROM url_checks uc)
-        SELECT urls.url_id, urls.name,
-        uc.status_code, uc.created_at
-        FROM urls
-        LEFT JOIN RankedUrlChecks uc
-        ON urls.url_id = uc.url_id AND uc.rn = 1
-        ORDER BY urls.url_id DESC;""")
-        all_urls = curs.fetchall()
-    conn.close()
-    return all_urls
-
-
-def get_id_by_name(conn, name):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
-        curs.execute(f"SELECT url_id FROM urls WHERE name='{name}'")
-        url_id = curs.fetchone()
-    conn.close()
-    return url_id
-
-
-def insert_url_get_id(conn, name):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
-        current_date = date.today().isoformat()
-        curs.execute(f"""
-        INSERT INTO urls (name, created_at)
-        VALUES ('{name}', '{current_date}')
-        RETURNING url_id;
-        """)
-        id = curs.fetchone().url_id
-        conn.commit()
-        conn.close()
-        return id
+def create_connection(database_url):
+    return psycopg2.connect(database_url)
 
 
 def get_url_by_id(conn, id):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
-        curs.execute(f'SELECT * FROM urls WHERE url_id={id}')
-        url = curs.fetchone()
-        conn.close()
+    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
+        cur.execute('SELECT * FROM urls WHERE id = %s;', (id,))
+        url = cur.fetchone()
     return url
 
 
-def get_checks_by_url_id(conn, url_id):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
-        curs.execute(f"""SELECT * FROM url_checks
-        WHERE url_id={url_id} ORDER BY check_id DESC""")
-        url_checks = curs.fetchall()
-        conn.close()
+def get_url_by_name(conn, url):
+    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
+        cur.execute('SELECT * FROM urls WHERE name = %s;', (url,))
+        url_new = cur.fetchone()
+    return url_new
+
+
+def show_url(conn, id):
+    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
+        cur.execute(
+            'SELECT * FROM url_checks WHERE url_id = %s '
+            'ORDER BY id DESC;', (id,)
+        )
+        checks = cur.fetchall()
+    return checks
+
+
+def add_url(conn, url_name):
+    post_date = date.today()
+    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
+        cur.execute(
+            'INSERT INTO urls(name, created_at) VALUES(%s, %s) RETURNING id;',
+            (url_name, post_date)
+        )
+        url_id = cur.fetchone().id
+    return url_id
+
+
+def show_urls(conn):
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT id, name FROM urls ORDER BY id DESC;")
+        urls = cur.fetchall()
+    return urls
+
+
+def show_url_checks(conn):
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT url_id, created_at, status_code "
+                    "FROM url_checks ORDER BY created_at DESC;")
+        url_checks = cur.fetchall()
     return url_checks
 
 
-def insert_check(conn, id, status_code, h1, title, description):
-    with conn.cursor(cursor_factory=NamedTupleCursor) as curs:
-        curs.execute(f"""INSERT INTO url_checks (url_id,
-        status_code, h1, title, description, created_at)
-        VALUES ({id}, {status_code}, '{h1}', '{title}',
-        '{description}', '{date.today().isoformat()}');""")
+def add_url_check(conn, check_dict):
+    with conn.cursor(cursor_factory=NamedTupleCursor) as cur:
+        cur.execute("""
+            INSERT INTO url_checks (url_id, status_code,
+            h1, title, description, created_at)
+            VALUES (%(url_id)s, %(status_code)s, %(h1)s,
+            %(title)s, %(description)s, %(created_at)s);
+        """, check_dict)
     conn.commit()
-    conn.close()

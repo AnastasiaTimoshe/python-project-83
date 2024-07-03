@@ -1,10 +1,10 @@
 import pytest
-from page_analyzer.app import index
+from page_analyzer.app import first_page
 
 
 @pytest.fixture()
 def app():
-    app = index()
+    app = first_page()
     app.config.update({
         "TESTING": True,
     })
