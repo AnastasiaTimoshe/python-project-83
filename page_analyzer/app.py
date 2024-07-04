@@ -95,12 +95,17 @@ def get_url(id):
 
 @app.post('/urls/<int:id>/checks')
 def post_url_check(id: int):
-    with create_connection(DATABASE_URL) as conn:
+    conn = create_connection(DATABASE_URL)
+    try:
         url = get_url_by_id(conn, id)
         if not url:
             return render_template('error/404.html'), 404
 
         page_data = make_check(url['name'], id)
+        if page_data is None:
+            flash('Произошла ошибка при проверке', 'danger')
+            return redirect(url_for('get_url', id=id))
+
         status_code = page_data.get('status_code')
 
         if status_code is not None and status_code < 400:
@@ -109,11 +114,11 @@ def post_url_check(id: int):
             conn.commit()
             flash('Страница успешно проверена', 'success')
         else:
-            flash('Произошла ошибка при проверке', 'danger' if status_code else 'Произошла внутренняя ошибка сервера')
-            if status_code is None:
-                return render_template('error/500.html'), 500
+            flash('Произошла ошибка при проверке', 'danger')
 
         return redirect(url_for('get_url', id=id))
+    finally:
+        conn.close()
 
 
 @app.errorhandler(404)
