@@ -48,16 +48,19 @@ def get_urls():
                 'id': url['id'],
                 'name': url['name'],
                 'last_check': next(
-                    (check.get('created_at') for check in url_checks if check['url_id'] == url['id']), None
+                    (check.get('created_at') for check in url_checks
+                     if check['url_id'] == url['id']), None
                 ),
                 'status_code': next(
-                    (check.get('status_code') for check in url_checks if check['url_id'] == url['id']), None
+                    (check.get('status_code') for check in url_checks
+                     if check['url_id'] == url['id']), None
                 )
             }
             for url in urls
         ]
 
-        return render_template('show_urls.html', messages=messages, urls=url_data)
+        return render_template('show_urls.html',
+                               messages=messages, urls=url_data)
 
 
 @app.post('/urls')
@@ -90,7 +93,8 @@ def get_url(id):
 
         messages = get_flashed_messages(with_categories=True)
         checks = show_url(conn, id)
-        return render_template('show_url.html', url=url, messages=messages, checks=checks)
+        return render_template('show_url.html',
+                               url=url, messages=messages, checks=checks)
 
 
 @app.post('/urls/<int:id>/checks')
