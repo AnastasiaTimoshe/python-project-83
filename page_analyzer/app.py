@@ -6,7 +6,6 @@ from flask import (
     url_for,
     redirect,
     flash,
-    get_flashed_messages,
     abort
 )
 from page_analyzer.validate import validate_url, normalize_url
