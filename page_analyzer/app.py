@@ -6,20 +6,12 @@ from flask import (
     url_for,
     redirect,
     flash,
-    get_flashed_messages
+    get_flashed_messages,
+    abort
 )
 from page_analyzer.validate import validate_url, normalize_url
 from page_analyzer.html import make_check
-from page_analyzer.database import (
-    create_connection,
-    get_url_by_id,
-    get_url_by_name,
-    show_urls,
-    show_url,
-    show_url_checks,
-    add_url,
-    add_url_check
-)
+import page_analyzer.database as db
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -32,35 +24,14 @@ app.config['SECRET_KEY'] = SECRET_KEY
 
 @app.route('/')
 def first_page():
-    messages = get_flashed_messages()
-    return render_template("index.html", messages=messages)
+    return render_template("index.html")
 
 
 @app.get('/urls')
 def get_urls():
-    with create_connection(DATABASE_URL) as conn:
-        messages = get_flashed_messages()
-        urls = show_urls(conn)
-        url_checks = show_url_checks(conn)
-
-        url_data = [
-            {
-                'id': url['id'],
-                'name': url['name'],
-                'last_check': next(
-                    (check.get('created_at') for check in url_checks
-                     if check['url_id'] == url['id']), None
-                ),
-                'status_code': next(
-                    (check.get('status_code') for check in url_checks
-                     if check['url_id'] == url['id']), None
-                )
-            }
-            for url in urls
-        ]
-
-        return render_template('show_urls.html',
-                               messages=messages, urls=url_data)
+    with db.create_connection(DATABASE_URL) as conn:
+        urls_data = db.get_urls_data(conn)
+        return render_template('show_urls.html', urls=urls_data)
 
 
 @app.post('/urls')
@@ -72,40 +43,37 @@ def post_url():
         return render_template('index.html'), 422
 
     url_norm = normalize_url(url_new)
-    with create_connection(DATABASE_URL) as conn:
-        url = get_url_by_name(conn, url_norm)
+    with db.create_connection(DATABASE_URL) as conn:
+        url = db.get_url_by_name(conn, url_norm)
         if url:
             flash('Страница уже существует')
-            id = url['id']
+            id = url.id
         else:
             flash('Страница успешно добавлена')
-            id = add_url(conn, url_norm)
+            id = db.add_url(conn, url_norm)
             conn.commit()
         return redirect(url_for('get_url', id=id))
 
 
 @app.get('/urls/<int:id>')
 def get_url(id):
-    with create_connection(DATABASE_URL) as conn:
-        url = get_url_by_id(conn, id)
+    with db.create_connection(DATABASE_URL) as conn:
+        url = db.get_url_by_id(conn, id)
         if not url:
-            return render_template('error/404.html'), 404
+            abort(404)
 
-        messages = get_flashed_messages(with_categories=True)
-        checks = show_url(conn, id)
-        return render_template('show_url.html',
-                               url=url, messages=messages, checks=checks)
+        checks = db.get_url_checks(conn, id)
+        return render_template('show_url.html', url=url, checks=checks)
 
 
 @app.post('/urls/<int:id>/checks')
 def post_url_check(id: int):
-    conn = create_connection(DATABASE_URL)
-    try:
-        url = get_url_by_id(conn, id)
+    with db.create_connection(DATABASE_URL) as conn:
+        url = db.get_url_by_id(conn, id)
         if not url:
-            return render_template('error/404.html'), 404
+            abort(404)
 
-        page_data = make_check(url['name'], id)
+        page_data = make_check(url.name, id)
         if page_data is None:
             flash('Произошла ошибка при проверке', 'danger')
             return redirect(url_for('get_url', id=id))
@@ -114,15 +82,13 @@ def post_url_check(id: int):
 
         if status_code is not None and status_code < 400:
             page_data['url_id'] = id
-            add_url_check(conn, page_data)
+            db.add_url_check(conn, page_data)
             conn.commit()
             flash('Страница успешно проверена', 'success')
         else:
             flash('Произошла ошибка при проверке', 'danger')
 
         return redirect(url_for('get_url', id=id))
-    finally:
-        conn.close()
 
 
 @app.errorhandler(404)

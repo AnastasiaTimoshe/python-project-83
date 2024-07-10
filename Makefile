@@ -7,16 +7,6 @@ build:
 publish:
 	poetry publish --dry-run
 
-test:
-	poetry run pytest
-
-
-selfcheck:
-	poetry check
-
-
-check: selfcheck test lint
-
 
 dev:
 	poetry run flask --app page_analyzer:app run
