@@ -6,8 +6,13 @@ lint:
 	poetry run flake8
 
 
+selfcheck:
+	poetry check
+
+
 build:
 	./build.sh
+
 
 publish:
 	poetry publish --dry-run
