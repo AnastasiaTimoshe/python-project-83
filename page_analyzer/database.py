@@ -118,7 +118,8 @@ def add_url_check(conn, check_dict):
     INSERT INTO url_checks (
         url_id, status_code, h1, title, description, created_at
     ) VALUES (
-        %(url_id)s, %(status_code)s, %(h1)s, %(title)s, %(description)s, %(created_at)s
+        %(url_id)s, %(status_code)s, %(h1)s, %(title)s,
+        %(description)s, %(created_at)s
     );
     '''
     with get_cursor(conn) as cur:
