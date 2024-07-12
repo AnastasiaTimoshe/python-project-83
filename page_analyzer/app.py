@@ -28,12 +28,9 @@ def index():
 
 @app.get('/urls')
 def get_urls():
-    conn = db.create_connection(DATABASE_URL)
-    try:
+    with db.database_connection(DATABASE_URL) as conn:
         urls_data = db.get_urls_data(conn)
         return render_template('show_urls.html', urls=urls_data)
-    finally:
-        db.close_connection(conn)
 
 
 @app.post('/urls')
@@ -45,8 +42,7 @@ def post_url():
         return render_template('index.html'), 422
 
     url_norm = normalize_url(url_new)
-    conn = db.create_connection(DATABASE_URL)
-    try:
+    with db.database_connection(DATABASE_URL) as conn:
         url = db.get_url_by_name(conn, url_norm)
         if url:
             flash('Страница уже существует')
@@ -55,28 +51,22 @@ def post_url():
             flash('Страница успешно добавлена')
             id = db.add_url(conn, url_norm)
         return redirect(url_for('get_url', id=id))
-    finally:
-        db.close_connection(conn)
 
 
 @app.get('/urls/<int:id>')
 def get_url(id):
-    conn = db.create_connection(DATABASE_URL)
-    try:
+    with db.database_connection(DATABASE_URL) as conn:
         url = db.get_url_by_id(conn, id)
         if not url:
             abort(404)
 
         checks = db.get_url_checks(conn, id)
         return render_template('show_url.html', url=url, checks=checks)
-    finally:
-        db.close_connection(conn)
 
 
 @app.post('/urls/<int:id>/checks')
 def post_url_check(id: int):
-    conn = db.create_connection(DATABASE_URL)
-    try:
+    with db.database_connection(DATABASE_URL) as conn:
         url = db.get_url_by_id(conn, id)
         if not url:
             abort(404)
@@ -96,9 +86,6 @@ def post_url_check(id: int):
             flash('Произошла ошибка при проверке', 'danger')
 
         return redirect(url_for('get_url', id=id))
-    finally:
-        db.close_connection(conn)
-
 
 @app.errorhandler(404)
 def page_not_found(e):

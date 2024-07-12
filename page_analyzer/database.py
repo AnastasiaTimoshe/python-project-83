@@ -12,26 +12,38 @@ def get_cursor(conn, cursor_factory=NamedTupleCursor):
     except psycopg2.DatabaseError as e:
         conn.rollback()
         raise e
+    else:
+        conn.commit()
 
 
 def create_connection(database_url):
     return psycopg2.connect(database_url)
 
 
-def close_connection(conn):
-    conn.commit()
-    conn.close()
+@contextmanager
+def database_connection(database_url):
+    conn = create_connection(database_url)
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 def get_url_by_id(conn, id):
+    query = '''
+    SELECT * FROM urls WHERE id = %s;
+    '''
     with get_cursor(conn) as cur:
-        cur.execute('SELECT * FROM urls WHERE id = %s;', (id,))
+        cur.execute(query, (id,))
         return cur.fetchone()
 
 
 def get_url_by_name(conn, url):
+    query = '''
+    SELECT * FROM urls WHERE name = %s;
+    '''
     with get_cursor(conn) as cur:
-        cur.execute('SELECT * FROM urls WHERE name = %s;', (url,))
+        cur.execute(query, (url,))
         return cur.fetchone()
 
 
@@ -103,10 +115,11 @@ def get_urls_data(conn):
 
 def add_url_check(conn, check_dict):
     query = '''
-    INSERT INTO url_checks
-    (url_id, status_code, h1, title, description, created_at)
-    VALUES (%(url_id)s, %(status_code)s, %(h1)s,
-    %(title)s, %(description)s, %(created_at)s);
+    INSERT INTO url_checks (
+        url_id, status_code, h1, title, description, created_at
+    ) VALUES (
+        %(url_id)s, %(status_code)s, %(h1)s, %(title)s, %(description)s, %(created_at)s
+    );
     '''
     with get_cursor(conn) as cur:
         cur.execute(query, check_dict)
